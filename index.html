@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>BLOB MERGE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
+:root {
+  --bg:#0b0a14;--card:#1e1c30;--card2:#252340;--text:#fffffe;--sub:#8b8da8;--accent:#ff8906;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:none;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;font-family:'Nunito',sans-serif;user-select:none;}
+.bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 50% at 10% 0%,#e5317022 0%,transparent 70%),
+    radial-gradient(ellipse 50% 60% at 90% 100%,#3da9fc18 0%,transparent 70%),
+    radial-gradient(ellipse 40% 40% at 60% 50%,#9b5de510 0%,transparent 70%);}
+#app{position:relative;z-index:1;width:100%;max-width:400px;
+  display:flex;flex-direction:column;align-items:center;padding:10px 14px 0;gap:7px;height:100vh;}
+
+/* Header */
+header{width:100%;display:flex;align-items:center;justify-content:space-between;}
+.logo{font-family:'Fredoka One',cursive;font-size:22px;
+  background:linear-gradient(120deg,#ff8906 0%,#e53170 50%,#3da9fc 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 12px #e5317044);}
+.scores{display:flex;gap:6px;}
+.score-box{background:var(--card);border-radius:12px;padding:4px 10px 5px;text-align:center;
+  border:1px solid #ffffff0c;box-shadow:inset 0 1px 0 #ffffff08;min-width:54px;}
+.score-box .lbl{font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--sub);}
+.score-box .val{font-size:17px;font-weight:900;color:var(--text);font-family:'Fredoka One',cursive;line-height:1.1;}
+
+/* Level bar */
+#levelRow{width:100%;display:flex;align-items:center;gap:8px;}
+#levelBadge{font-family:'Fredoka One',cursive;font-size:13px;color:#fff;
+  background:linear-gradient(135deg,#ff8906,#e53170);
+  border-radius:20px;padding:3px 12px;white-space:nowrap;flex-shrink:0;
+  box-shadow:0 2px 10px #e5317044;}
+#levelProgressWrap{flex:1;height:8px;background:#ffffff12;border-radius:4px;overflow:hidden;}
+#levelProgressBar{height:100%;border-radius:4px;
+  background:linear-gradient(90deg,#ff8906,#e53170);
+  transition:width 0.4s ease;width:0%;}
+
+/* Bonus meter */
+#bonusRow{width:100%;display:flex;align-items:center;gap:8px;}
+#bonusLabel{font-family:'Fredoka One',cursive;font-size:11px;
+  white-space:nowrap;flex-shrink:0;color:#ffe01a;
+  text-shadow:0 0 8px #ffe01a88;}
+#bonusMeterWrap{flex:1;height:10px;background:#ffffff0e;border-radius:5px;overflow:hidden;
+  border:1px solid #ffffff0a;}
+#bonusMeterBar{height:100%;border-radius:5px;width:0%;
+  background:linear-gradient(90deg,#ffe01a,#ff8c00,#ff3d3d);
+  box-shadow:0 0 8px #ffe01a88;
+  transition:width 0.3s ease;}
+#bonusCountdown{font-family:'Fredoka One',cursive;font-size:12px;
+  color:#ffe01a;display:none;white-space:nowrap;flex-shrink:0;
+  text-shadow:0 0 10px #ffe01a;}
+
+/* Combo bar */
+#comboBar{width:100%;height:30px;display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity 0.3s;pointer-events:none;}
+#comboBar.show{opacity:1;}
+#comboText{font-family:'Fredoka One',cursive;font-size:20px;letter-spacing:1px;text-align:center;white-space:nowrap;}
+@keyframes comboPulse{0%{transform:scale(0.6);opacity:0;}60%{transform:scale(1.18);}100%{transform:scale(1);opacity:1;}}
+
+/* Tray */
+#tray{width:100%;background:var(--card);border-radius:16px;padding:7px 12px 7px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  border:1px solid #ffffff0a;box-shadow:0 2px 12px #00000033,inset 0 1px 0 #ffffff08;}
+.tray-left{display:flex;flex-direction:column;gap:1px;}
+.tray-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--sub);}
+.tray-hint{font-size:8px;color:#ffffff33;font-weight:600;}
+#nextBlobsContainer{display:flex;align-items:center;gap:5px;}
+.blob-preview{display:flex;align-items:center;justify-content:center;border-radius:50%;}
+.blob-preview svg{display:block;overflow:visible;}
+.rainbow-badge{font-size:8px;font-weight:800;
+  background:linear-gradient(90deg,#ff3d3d,#ffaa1a,#ffe01a,#2eeb6a,#1ad4ff,#a64dff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:shimmer 2s linear infinite;background-size:200% 100%;}
+@keyframes shimmer{0%{background-position:0%}100%{background-position:200%}}
+
+/* Canvas */
+#gameCanvas{border-radius:20px;border:1.5px solid #ffffff08;
+  box-shadow:0 12px 50px #00000077,0 0 0 1px #ffffff05;
+  display:block;flex-shrink:0;}
+
+/* Bottom bar */
+#bottomBar{width:100%;display:flex;gap:8px;padding-bottom:8px;margin-top:auto;}
+.btn{flex:1;padding:10px 8px;border-radius:14px;border:none;
+  font-family:'Fredoka One',cursive;font-size:14px;cursor:pointer;transition:transform 0.1s;}
+.btn:active{transform:scale(0.95);}
+.btn-primary{background:linear-gradient(135deg,#ff8906,#e53170);color:#fff;
+  box-shadow:0 4px 18px #e5317044;}
+.btn-secondary{background:var(--card2);color:var(--text);border:1px solid #ffffff10;}
+.btn-hidden{opacity:0;pointer-events:none;}
+
+/* Popups */
+.score-popup{position:fixed;font-family:'Fredoka One',cursive;
+  pointer-events:none;z-index:999;
+  animation:floatUp 1s cubic-bezier(.2,.8,.4,1) forwards;white-space:nowrap;}
+@keyframes floatUp{
+  0%{opacity:1;transform:translateY(0) scale(0.8);}
+  20%{opacity:1;transform:translateY(-10px) scale(1.1);}
+  100%{opacity:0;transform:translateY(-60px) scale(1);}}
+
+.chain-total{position:fixed;left:50%;transform:translateX(-50%);
+  font-family:'Fredoka One',cursive;font-size:44px;
+  pointer-events:none;z-index:998;text-align:center;white-space:nowrap;
+  animation:chainPop 1.4s cubic-bezier(.2,.8,.2,1) forwards;
+  text-shadow:0 0 30px currentColor,0 4px 20px #000a;}
+@keyframes chainPop{
+  0%{opacity:0;transform:translateX(-50%) scale(0.4);}
+  18%{opacity:1;transform:translateX(-50%) scale(1.25);}
+  45%{opacity:1;transform:translateX(-50%) scale(1);}
+  78%{opacity:1;transform:translateX(-50%) scale(1);}
+  100%{opacity:0;transform:translateX(-50%) scale(0.85) translateY(-40px);}}
+
+.combo-banner{position:fixed;left:50%;
+  font-family:'Fredoka One',cursive;font-size:42px;
+  pointer-events:none;z-index:997;text-align:center;white-space:nowrap;
+  animation:bannerPop 1.1s cubic-bezier(.2,.8,.2,1) forwards;
+  text-shadow:0 0 30px currentColor,0 4px 16px #0008;}
+@keyframes bannerPop{
+  0%{opacity:0;transform:translateX(-50%) scale(0.5);}
+  15%{opacity:1;transform:translateX(-50%) scale(1.2);}
+  40%{opacity:1;transform:translateX(-50%) scale(1);}
+  75%{opacity:1;transform:translateX(-50%) scale(1);}
+  100%{opacity:0;transform:translateX(-50%) scale(0.9) translateY(-30px);}}
+
+/* Bonus round overlay flash */
+#bonusFlash{position:fixed;inset:0;z-index:290;pointer-events:none;
+  opacity:0;background:radial-gradient(ellipse at 50% 50%,#ffe01a44,transparent 70%);
+  transition:opacity 0.4s;}
+#bonusFlash.show{opacity:1;}
+
+.bonus-announce{position:fixed;left:50%;top:35%;transform:translateX(-50%);
+  font-family:'Fredoka One',cursive;font-size:50px;
+  pointer-events:none;z-index:999;text-align:center;white-space:nowrap;
+  animation:chainPop 1.6s cubic-bezier(.2,.8,.2,1) forwards;
+  background:linear-gradient(90deg,#ffe01a,#ff8c00,#ff3d3d,#a64dff,#1ad4ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 20px #ffe01a);}
+
+/* Level up announce */
+.levelup-announce{position:fixed;left:50%;top:40%;transform:translateX(-50%);
+  font-family:'Fredoka One',cursive;font-size:42px;color:#ffe01a;
+  pointer-events:none;z-index:998;text-align:center;white-space:nowrap;
+  animation:chainPop 1.4s cubic-bezier(.2,.8,.2,1) forwards;
+  text-shadow:0 0 20px #ffe01a,0 4px 16px #000a;}
+
+/* Game over */
+#gameOver{display:none;position:fixed;inset:0;z-index:300;
+  background:#0b0a14cc;backdrop-filter:blur(16px) saturate(1.2);
+  align-items:center;justify-content:center;}
+#gameOver.show{display:flex;}
+.go-card{background:linear-gradient(160deg,#1e1c30,#161425);
+  border:1px solid #ffffff12;border-radius:28px;
+  padding:28px 28px 24px;text-align:center;width:88%;max-width:290px;
+  box-shadow:0 30px 80px #000000bb;}
+.go-emoji{font-size:40px;margin-bottom:6px;}
+.go-title{font-family:'Fredoka One',cursive;font-size:28px;
+  background:linear-gradient(120deg,#ff8906,#e53170);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;margin-bottom:12px;}
+.go-lbl{font-size:10px;color:var(--sub);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;}
+.go-val{font-family:'Fredoka One',cursive;font-size:48px;color:#fff;line-height:1.0;}
+.go-sub{font-size:11px;font-weight:800;margin-bottom:4px;}
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+<div id="bonusFlash"></div>
+<div id="app">
+  <header>
+    <div class="logo">BLOB MERGE</div>
+    <div class="scores">
+      <div class="score-box"><div class="lbl">Score</div><div class="val" id="scoreVal">0</div></div>
+      <div class="score-box"><div class="lbl">Best</div><div class="val" id="bestVal">0</div></div>
+    </div>
+  </header>
+
+  <div id="levelRow">
+    <div id="levelBadge">LVL 1</div>
+    <div id="levelProgressWrap"><div id="levelProgressBar"></div></div>
+  </div>
+
+  <div id="bonusRow">
+    <div id="bonusLabel">⚡ BONUS</div>
+    <div id="bonusMeterWrap"><div id="bonusMeterBar"></div></div>
+    <div id="bonusCountdown"></div>
+  </div>
+
+  <div id="comboBar"><div id="comboText"></div></div>
+
+  <div id="tray">
+    <div class="tray-left">
+      <div class="tray-lbl">Up Next</div>
+      <div class="tray-hint" id="trayHint">drag to drop</div>
+    </div>
+    <div id="nextBlobsContainer"></div>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="bottomBar">
+    <button class="btn btn-secondary" id="undoBtn" onclick="undoMove()">↩ Undo</button>
+    <button class="btn btn-primary" onclick="newGame()">✦ New Game</button>
+  </div>
+</div>
+
+<div id="gameOver">
+  <div class="go-card">
+    <div class="go-emoji">😵</div>
+    <div class="go-title">Game Over!</div>
+    <div class="go-lbl">Score</div>
+    <div class="go-val" id="goScore">0</div>
+    <div class="go-sub" style="color:var(--accent)" id="goBest"></div>
+    <div class="go-sub" style="color:#a64dff;margin-bottom:4px;" id="goLevel"></div>
+    <div class="go-sub" style="color:#ffe01a;margin-bottom:18px;" id="goCombo"></div>
+    <button class="btn btn-primary" style="width:100%;font-size:16px;padding:12px;" onclick="newGame()">Play Again 🎉</button>
+  </div>
+</div>
+
+<script>
+// =====================================================
+//  BLOB MERGE  ·  Levels + Bonus Round Edition
+// =====================================================
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+
+// ---- Level config ----
+const LEVEL_CONFIG=[
+  {level:1, colors:3, cols:6, queueSize:3, undo:true,  scoreNeeded:0},
+  {level:2, colors:3, cols:6, queueSize:3, undo:true,  scoreNeeded:120},
+  {level:3, colors:3, cols:6, queueSize:3, undo:true,  scoreNeeded:300},
+  {level:4, colors:4, cols:6, queueSize:3, undo:true,  scoreNeeded:550},
+  {level:5, colors:4, cols:6, queueSize:3, undo:true,  scoreNeeded:900},
+  {level:6, colors:4, cols:6, queueSize:3, undo:true,  scoreNeeded:1400},
+  {level:7, colors:5, cols:6, queueSize:2, undo:false, scoreNeeded:2100},
+  {level:8, colors:5, cols:6, queueSize:2, undo:false, scoreNeeded:3000},
+  {level:9, colors:5, cols:6, queueSize:2, undo:false, scoreNeeded:4200},
+  {level:10,colors:6, cols:5, queueSize:1, undo:false, scoreNeeded:6000},
+];
+function getLevelCfg(lvl){ return LEVEL_CONFIG[Math.min(lvl-1,LEVEL_CONFIG.length-1)]; }
+function getMaxLevel(){ return LEVEL_CONFIG.length; }
+
+let COLS=6, ROWS=8, CELL;
+
+function resize(){
+  const hdr=document.querySelector('header');
+  const lvlRow=document.getElementById('levelRow');
+  const bonusRow=document.getElementById('bonusRow');
+  const cbar=document.getElementById('comboBar');
+  const tray=document.getElementById('tray');
+  const bar=document.getElementById('bottomBar');
+  const avail=window.innerHeight
+    -hdr.offsetHeight-lvlRow.offsetHeight-bonusRow.offsetHeight
+    -cbar.offsetHeight-tray.offsetHeight-bar.offsetHeight-74;
+  const maxByW=Math.floor((Math.min(window.innerWidth,400)-28)/COLS);
+  const maxByH=Math.floor(avail/ROWS);
+  CELL=Math.min(maxByW,maxByH,56);
+  canvas.width=CELL*COLS;
+  canvas.height=CELL*ROWS;
+}
+
+// ---- Palette (6 distinct) ----
+const PALETTE=[
+  {fill:'#ff3d3d',mid:'#cc1010',dark:'#6e0000',glow:'#ff3d3d'},
+  {fill:'#1ad4ff',mid:'#0099cc',dark:'#004466',glow:'#1ad4ff'},
+  {fill:'#2eeb6a',mid:'#12b045',dark:'#005a1e',glow:'#2eeb6a'},
+  {fill:'#ffe01a',mid:'#c9a800',dark:'#665200',glow:'#ffe01a'},
+  {fill:'#a64dff',mid:'#7020cc',dark:'#350066',glow:'#a64dff'},
+  {fill:'#ff8c00',mid:'#cc5a00',dark:'#6e2800',glow:'#ff8c00'},
+];
+const LEVEL_RING=['','#ffffff88','#ffe68099','#ff890699','#e5317099','#9b5de599','#ff6b3599'];
+
+function mergeMult(n){ if(n>=6)return 8; if(n>=5)return 4; if(n>=4)return 2; return 1; }
+const COMBO_CFG=[
+  {min:2,label:'COMBO!',      color:'#ffe01a',mult:1.5},
+  {min:3,label:'MEGA COMBO!', color:'#ff8c00',mult:2},
+  {min:4,label:'ULTRA COMBO!',color:'#a64dff',mult:3},
+  {min:5,label:'🔥 LEGENDARY!',color:'#ff3d3d',mult:5},
+];
+
+// ---- State ----
+let grid=[],score=0,best=0,undoStack=[];
+let nextBlobs=[],dragBlob=null,animating=false,particles=[];
+let comboCount=0,maxCombo=0;
+let rainbowDropsLeft=0;
+let comboClearTimer=null;
+let chainScoreAccum=0;
+
+// Level state
+let currentLevel=1;
+let levelScore=0; // score accumulated toward next level
+
+// Bonus meter
+let bonusMeter=0;          // 0–100
+const BONUS_FILL_NORMAL=8; // fill per merge (3 blobs)
+const BONUS_FILL_BIG=25;   // fill per big merge (4+ blobs)
+let bonusActive=false;
+let bonusMovesLeft=0;
+let bonusOriginalColors=null; // store original grid colors to restore
+
+// ===================== NEW GAME =====================
+function newGame(){
+  document.getElementById('gameOver').classList.remove('show');
+  currentLevel=1;levelScore=0;
+  const cfg=getLevelCfg(1);
+  COLS=cfg.cols;
+  grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
+  score=0;undoStack=[];particles=[];
+  comboCount=0;maxCombo=0;chainScoreAccum=0;
+  bonusMeter=0;bonusActive=false;bonusMovesLeft=0;
+  rainbowDropsLeft=8+Math.floor(Math.random()*4);
+  updateScoreUI();updateLevelUI();updateBonusMeterUI();
+  hideComboBar();
+  nextBlobs=buildQueue(cfg);
+  resize();updateTrayUI();renderAll();
+  document.getElementById('undoBtn').classList.toggle('btn-hidden',!cfg.undo);
+  document.getElementById('bonusFlash').classList.remove('show');
+}
+
+function buildQueue(cfg){
+  const q=[];
+  for(let i=0;i<cfg.queueSize;i++) q.push(rndBlob(cfg.colors));
+  return q;
+}
+
+function rndBlob(maxColors){
+  maxColors=maxColors||getLevelCfg(currentLevel).colors;
+  return {color:Math.floor(Math.random()*maxColors),level:1,isRainbow:false};
+}
+function makeRainbow(){return {color:-1,level:1,isRainbow:true};}
+
+// ===================== LEVEL SYSTEM =====================
+function updateLevelUI(){
+  const cfg=getLevelCfg(currentLevel);
+  const nextCfg=getLevelCfg(currentLevel+1);
+  document.getElementById('levelBadge').textContent=`LVL ${currentLevel}`;
+  const needed=nextCfg.scoreNeeded-cfg.scoreNeeded;
+  const progress=Math.min(100,((score-cfg.scoreNeeded)/needed)*100);
+  document.getElementById('levelProgressBar').style.width=Math.max(0,progress)+'%';
+}
+
+function checkLevelUp(){
+  if(currentLevel>=getMaxLevel()) return;
+  const nextCfg=getLevelCfg(currentLevel+1);
+  if(score>=nextCfg.scoreNeeded){
+    const oldLevel=currentLevel;
+    currentLevel++;
+    const cfg=getLevelCfg(currentLevel);
+    // Resize board if cols changed
+    if(cfg.cols!==COLS){
+      COLS=cfg.cols;
+      // Trim grid columns
+      grid=grid.map(row=>row.slice(0,COLS));
+      resize();
+    }
+    // Update undo button
+    document.getElementById('undoBtn').classList.toggle('btn-hidden',!cfg.undo);
+    // Refill queue to new size
+    while(nextBlobs.length<cfg.queueSize) nextBlobs.push(rndBlob(cfg.colors));
+    if(nextBlobs.length>cfg.queueSize) nextBlobs=nextBlobs.slice(0,cfg.queueSize);
+    showLevelUpBanner(currentLevel);
+    updateLevelUI();
+    updateTrayUI();
+  }
+}
+
+function showLevelUpBanner(lvl){
+  const el=document.createElement('div');
+  el.className='levelup-announce';
+  el.textContent=`LEVEL ${lvl}! 🎉`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1500);
+}
+
+// ===================== BONUS METER =====================
+function fillBonusMeter(blobCount){
+  if(bonusActive) return;
+  const fill=blobCount>=4?BONUS_FILL_BIG:BONUS_FILL_NORMAL;
+  bonusMeter=Math.min(100,bonusMeter+fill);
+  updateBonusMeterUI();
+  if(bonusMeter>=100) triggerBonusRound();
+}
+
+function updateBonusMeterUI(){
+  document.getElementById('bonusMeterBar').style.width=bonusMeter+'%';
+  const cd=document.getElementById('bonusCountdown');
+  const lbl=document.getElementById('bonusLabel');
+  if(bonusActive){
+    cd.style.display='block';
+    cd.textContent=`${bonusMovesLeft} left`;
+    lbl.textContent='🔥 BONUS';
+    document.getElementById('bonusMeterBar').style.background=
+      'linear-gradient(90deg,#ffe01a,#ffffff,#ffe01a)';
+  } else {
+    cd.style.display='none';
+    lbl.textContent='⚡ BONUS';
+    document.getElementById('bonusMeterBar').style.background=
+      'linear-gradient(90deg,#ffe01a,#ff8c00,#ff3d3d)';
+  }
+}
+
+function triggerBonusRound(){
+  bonusActive=true;
+  bonusMovesLeft=5;
+  bonusMeter=100;
+
+  // Announce
+  const el=document.createElement('div');
+  el.className='bonus-announce';
+  el.textContent='✦ BONUS ROUND! ✦';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1700);
+
+  // Flash
+  const flash=document.getElementById('bonusFlash');
+  flash.classList.add('show');
+  setTimeout(()=>flash.classList.remove('show'),600);
+
+  // Simplify board colors to 2 colors
+  bonusOriginalColors=grid.map(row=>row.map(cell=>cell?{...cell}:null));
+  simplifyBoardColors();
+  // Also simplify queue
+  nextBlobs=nextBlobs.map(b=>b.isRainbow?b:{...b,color:Math.floor(Math.random()*2)});
+  updateTrayUI();
+  updateBonusMeterUI();
+  renderAll();
+}
+
+function simplifyBoardColors(){
+  // Map all colors to just 2
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const b=grid[r][c];
+    if(b&&!b.isRainbow) b.color=b.color%2;
+  }
+}
+
+function tickBonusMove(){
+  if(!bonusActive) return;
+  bonusMovesLeft--;
+  updateBonusMeterUI();
+  if(bonusMovesLeft<=0) endBonusRound();
+}
+
+function endBonusRound(){
+  bonusActive=false;
+  bonusMeter=0;
+  // Restore original colors where blobs still exist
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const b=grid[r][c];
+    const orig=bonusOriginalColors?.[r]?.[c];
+    if(b&&orig&&!b.isRainbow) b.color=orig.color;
+    else if(b&&!b.isRainbow&&!orig){
+      // New blob placed during bonus — assign a proper color
+      b.color=Math.floor(Math.random()*getLevelCfg(currentLevel).colors);
+    }
+  }
+  bonusOriginalColors=null;
+  // Restore queue colors
+  const cfg=getLevelCfg(currentLevel);
+  nextBlobs=nextBlobs.map(b=>b.isRainbow?b:{...b,color:Math.floor(Math.random()*cfg.colors)});
+  updateTrayUI();
+  updateBonusMeterUI();
+  renderAll();
+}
+
+function getBonusMult(){ return bonusActive?3:1; }
+
+// ===================== TRAY UI =====================
+function updateTrayUI(){
+  const wrap=document.getElementById('nextBlobsContainer');
+  wrap.innerHTML='';
+  nextBlobs.forEach((b,i)=>{
+    const size=i===0?44:32,r=size/2-2;
+    const svg=b.isRainbow?makeRainbowSVG(r,size):makeBlobSVG(r,PALETTE[b.color],b.level,size);
+    const div=document.createElement('div');
+    div.className='blob-preview';
+    div.style.cssText=`width:${size}px;height:${size}px;opacity:${i===0?1:0.6};transform:scale(${i===0?1:0.88})`;
+    div.innerHTML=svg;
+    wrap.appendChild(div);
+  });
+  document.getElementById('trayHint').innerHTML=
+    nextBlobs.some(b=>b.isRainbow)
+      ?'<span class="rainbow-badge">✦ RAINBOW BLOB!</span>'
+      :bonusActive?'<span style="color:#ffe01a;font-weight:800">🔥 BONUS ACTIVE</span>'
+      :'drag to drop';
+}
+
+function makeBlobSVG(r,col,level,size){
+  const cx=size/2,cy=size/2;
+  const id='g'+Math.random().toString(36).slice(2,7),sid='s'+id;
+  const lt=level>1?`<text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle"
+    font-family="Fredoka One,cursive" font-size="${Math.max(8,r*0.55)}" fill="white" opacity="0.95">${level}</text>`:'';
+  const rng=level>1?`<circle cx="${cx}" cy="${cy}" r="${r-1}" fill="none" stroke="${LEVEL_RING[Math.min(level,6)]}" stroke-width="2"/>`:'';
+  return `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+    <defs>
+      <radialGradient id="${id}" cx="35%" cy="30%" r="65%">
+        <stop offset="0%" stop-color="${lighten(col.fill,55)}"/>
+        <stop offset="45%" stop-color="${col.fill}"/>
+        <stop offset="100%" stop-color="${col.dark}"/>
+      </radialGradient>
+      <radialGradient id="${sid}" cx="30%" cy="25%" r="55%">
+        <stop offset="0%" stop-color="white" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="white" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="f${id}" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="${r*0.35}" result="blur"/>
+        <feFlood flood-color="${col.glow}" flood-opacity="0.6" result="color"/>
+        <feComposite in="color" in2="blur" operator="in" result="glow"/>
+        <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${id})" filter="url(#f${id})"/>
+    ${rng}<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${sid})"/>
+    <ellipse cx="${cx-r*0.22}" cy="${cy-r*0.3}" rx="${r*0.32}" ry="${r*0.2}" fill="white" opacity="0.35"/>
+    ${lt}</svg>`;
+}
+
+function makeRainbowSVG(r,size){
+  const cx=size/2,cy=size/2,id='rg'+Math.random().toString(36).slice(2,7);
+  return `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+    <defs>
+      <linearGradient id="${id}" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#ff3d3d"/>
+        <stop offset="20%" stop-color="#ff8c00"/>
+        <stop offset="40%" stop-color="#ffe01a"/>
+        <stop offset="60%" stop-color="#2eeb6a"/>
+        <stop offset="80%" stop-color="#1ad4ff"/>
+        <stop offset="100%" stop-color="#a64dff"/>
+      </linearGradient>
+      <filter id="fg${id}" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="${r*0.4}" result="blur"/>
+        <feFlood flood-color="white" flood-opacity="0.5" result="color"/>
+        <feComposite in="color" in2="blur" operator="in" result="glow"/>
+        <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${id})" filter="url(#fg${id})"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="white" stroke-width="1.5" opacity="0.5"/>
+    <ellipse cx="${cx-r*0.22}" cy="${cy-r*0.3}" rx="${r*0.32}" ry="${r*0.2}" fill="white" opacity="0.45"/>
+    <text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle"
+      font-size="${Math.max(9,r*0.6)}" fill="white" opacity="0.9">✦</text>
+  </svg>`;
+}
+
+// ===================== SCORE =====================
+function addScore(pts){ score+=pts; if(score>best) best=score; updateScoreUI(); updateLevelUI(); }
+function updateScoreUI(){
+  document.getElementById('scoreVal').textContent=score;
+  document.getElementById('bestVal').textContent=best;
+}
+
+// ===================== COMBO =====================
+function incrementCombo(){ comboCount++; if(comboCount>maxCombo) maxCombo=comboCount; showComboUI(comboCount); }
+function resetCombo(){ comboCount=0; hideComboBar(); }
+function showComboUI(count){
+  const cfg=[...COMBO_CFG].reverse().find(c=>count>=c.min); if(!cfg) return;
+  const bar=document.getElementById('comboBar'),text=document.getElementById('comboText');
+  bar.classList.add('show');
+  text.style.animation='none';text.offsetHeight;text.style.animation='comboPulse 0.35s ease-out';
+  text.textContent=`${cfg.label}  ×${cfg.mult}`;
+  text.style.background=`linear-gradient(90deg,${cfg.color},white,${cfg.color})`;
+  text.style.webkitBackgroundClip='text';text.style.webkitTextFillColor='transparent';
+  text.style.backgroundClip='text';text.style.backgroundSize='200% 100%';
+  if(count>=3) showComboBanner(cfg,count);
+  if(comboClearTimer) clearTimeout(comboClearTimer);
+  comboClearTimer=setTimeout(hideComboBar,2000);
+}
+function hideComboBar(){ document.getElementById('comboBar').classList.remove('show'); }
+function showComboBanner(cfg,count){
+  const el=document.createElement('div');
+  el.className='combo-banner';el.style.color=cfg.color;
+  el.style.top=(window.innerHeight*0.42)+'px';
+  el.textContent=count>=5?'🔥 LEGENDARY! 🔥':cfg.label;
+  document.body.appendChild(el);setTimeout(()=>el.remove(),1150);
+}
+function getComboMult(){ const cfg=[...COMBO_CFG].reverse().find(c=>comboCount>=c.min); return cfg?cfg.mult:1; }
+
+// ===================== CANVAS =====================
+function renderAll(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawGrid();drawBlobs();renderParticles();if(dragBlob) drawDrag();
+}
+
+function drawGrid(){
+  ctx.fillStyle='#12111e';ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Bonus round golden tint
+  if(bonusActive){
+    const pulse=0.5+0.5*Math.sin(Date.now()*0.004);
+    ctx.fillStyle=`rgba(255,224,26,${0.04+pulse*0.03})`;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  for(let c=0;c<COLS;c++){
+    const filled=countColFilled(c);
+    const danger=filled/ROWS;
+    if(danger>0.5){
+      const a=((danger-0.5)/0.5)*0.28;
+      ctx.fillStyle=`rgba(255,60,60,${a})`;
+      roundRect(ctx,c*CELL+1,1,CELL-2,canvas.height-2,10);ctx.fill();
+    }
+  }
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const even=(r+c)%2===0;
+    ctx.fillStyle=even?'#1c1a2e':'#181628';
+    roundRect(ctx,c*CELL+2,r*CELL+2,CELL-4,CELL-4,10);ctx.fill();
+    ctx.strokeStyle='#ffffff07';ctx.lineWidth=1;
+    roundRect(ctx,c*CELL+2.5,r*CELL+2.5,CELL-5,CELL-5,10);ctx.stroke();
+  }
+  for(let c=0;c<COLS;c++){
+    if(countColFilled(c)>=ROWS-1){
+      const pulse=0.5+0.5*Math.sin(Date.now()*0.008);
+      ctx.strokeStyle=`rgba(255,60,60,${0.6+pulse*0.4})`;
+      ctx.lineWidth=3;ctx.beginPath();
+      ctx.moveTo(c*CELL+4,3);ctx.lineTo(c*CELL+CELL-4,3);ctx.stroke();
+    }
+  }
+}
+
+function countColFilled(c){ let n=0; for(let r=0;r<ROWS;r++) if(grid[r][c]) n++; return n; }
+
+function drawBlobs(){
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const b=grid[r][c];if(!b) continue;
+    drawBlob(ctx,c*CELL+CELL/2,r*CELL+CELL/2,(CELL/2-5)*b.scale,
+      b.color,b.level,b.wobble||0,b.opacity??1,b.isRainbow);
+  }
+}
+
+function drawBlob(c,cx,cy,r,colorIdx,level,wobble,opacity,isRainbow){
+  if(r<=0) return;
+  c.save();c.globalAlpha=opacity;
+  c.translate(cx,cy);c.scale(1+wobble*0.12,1-wobble*0.08);
+  if(isRainbow){ drawRainbowBlob(c,r); }
+  else{
+    const col=PALETTE[colorIdx%PALETTE.length];
+    c.shadowColor=col.glow;c.shadowBlur=18+level*4;
+    const g=c.createRadialGradient(-r*0.28,-r*0.32,r*0.04,0,0,r);
+    g.addColorStop(0,lighten(col.fill,65));g.addColorStop(0.4,col.fill);
+    g.addColorStop(0.8,col.mid);g.addColorStop(1,col.dark);
+    c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.fillStyle=g;c.fill();
+    c.shadowBlur=0;
+    if(level>1){c.beginPath();c.arc(0,0,r-2,0,Math.PI*2);
+      c.strokeStyle=LEVEL_RING[Math.min(level,6)];c.lineWidth=2;c.stroke();}
+    const sh=c.createRadialGradient(-r*0.28,-r*0.38,0,-r*0.15,-r*0.25,r*0.6);
+    sh.addColorStop(0,'rgba(255,255,255,0.52)');sh.addColorStop(1,'rgba(255,255,255,0)');
+    c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.fillStyle=sh;c.fill();
+    c.beginPath();c.ellipse(-r*0.24,-r*0.3,r*0.18,r*0.11,-0.4,0,Math.PI*2);
+    c.fillStyle='rgba(255,255,255,0.42)';c.fill();
+    if(level>1){
+      c.fillStyle='rgba(255,255,255,0.95)';
+      c.font=`900 ${Math.round(r*0.58)}px "Fredoka One",cursive`;
+      c.textAlign='center';c.textBaseline='middle';c.fillText(level,0,1);
+    }
+  }
+  c.restore();
+}
+
+function drawRainbowBlob(c,r){
+  const t=Date.now()*0.002;
+  c.shadowColor='white';c.shadowBlur=22;
+  const g=c.createLinearGradient(-r,r,r,-r);
+  [0,60,120,180,240,300,360].forEach((h,i)=>g.addColorStop(i/6,`hsl(${(h+t*60)%360},100%,60%)`));
+  c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.fillStyle=g;c.fill();
+  c.shadowBlur=0;
+  c.beginPath();c.arc(0,0,r-1,0,Math.PI*2);
+  c.strokeStyle='rgba(255,255,255,0.5)';c.lineWidth=2;c.stroke();
+  const sh=c.createRadialGradient(-r*0.28,-r*0.38,0,-r*0.15,-r*0.25,r*0.6);
+  sh.addColorStop(0,'rgba(255,255,255,0.55)');sh.addColorStop(1,'rgba(255,255,255,0)');
+  c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.fillStyle=sh;c.fill();
+  c.fillStyle='rgba(255,255,255,0.9)';
+  c.font=`900 ${Math.round(r*0.62)}px "Fredoka One",cursive`;
+  c.textAlign='center';c.textBaseline='middle';c.fillText('✦',0,1);
+}
+
+function drawDrag(){
+  const b=dragBlob,r=CELL/2-4;
+  if(b.col>=0&&b.col<COLS){
+    const gc=b.isRainbow?'#ffffff':PALETTE[b.color]?.glow||'#fff';
+    ctx.fillStyle=gc+'18';
+    roundRect(ctx,b.col*CELL+3,3,CELL-6,canvas.height-6,10);ctx.fill();
+    const tr=getDropRow(b.col);
+    if(tr>=0){
+      ctx.beginPath();ctx.arc(b.col*CELL+CELL/2,tr*CELL+CELL/2,r+4,0,Math.PI*2);
+      ctx.strokeStyle=(b.isRainbow?'#ffffff':PALETTE[b.color].fill)+'aa';
+      ctx.lineWidth=2.5;ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);
+    }
+  }
+  ctx.globalAlpha=0.82;
+  drawBlob(ctx,b.x,b.y,r,b.color,b.level,0,1,b.isRainbow);
+  ctx.globalAlpha=1;
+}
+
+// ===================== PARTICLES =====================
+function spawnPop(cx,cy,colorIdx,n=16,isRainbow=false){
+  const colors=isRainbow
+    ?['#ff3d3d','#ff8c00','#ffe01a','#2eeb6a','#1ad4ff','#a64dff']
+    :(()=>{const col=PALETTE[colorIdx%PALETTE.length];return[col.fill,col.mid,lighten(col.fill,60),'#fff'];})();
+  for(let i=0;i<n;i++){
+    const angle=(Math.PI*2*i/n)+Math.random()*0.5,spd=1.8+Math.random()*5.5;
+    particles.push({x:cx,y:cy,vx:Math.cos(angle)*spd,vy:Math.sin(angle)*spd-1.2,
+      r:3+Math.random()*5,color:colors[Math.floor(Math.random()*colors.length)],
+      life:1,decay:0.022+Math.random()*0.018,isSquare:Math.random()<0.3});
+  }
+  for(let i=0;i<6;i++){
+    const angle=Math.PI*2*i/6;
+    const col=isRainbow?colors[i]:PALETTE[colorIdx%PALETTE.length].fill;
+    particles.push({x:cx,y:cy,vx:Math.cos(angle)*3.5,vy:Math.sin(angle)*3.5,
+      r:7,color:col+'88',life:1,decay:0.04,isRing:true});
+  }
+}
+
+function renderParticles(){
+  particles=particles.filter(p=>p.life>0);
+  for(const p of particles){
+    ctx.save();ctx.globalAlpha=p.life*p.life;
+    if(p.isRing){
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r*(2-p.life),0,Math.PI*2);
+      ctx.strokeStyle=p.color;ctx.lineWidth=2;ctx.stroke();
+    } else if(p.isSquare){
+      ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=6;
+      const s=p.r*p.life;ctx.fillRect(p.x-s/2,p.y-s/2,s,s);
+    } else {
+      ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=10;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2);ctx.fill();
+    }
+    ctx.restore();
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.18;p.vx*=0.96;p.life-=p.decay;
+  }
+}
+
+// ===================== GAME LOGIC =====================
+function getDropRow(col){ for(let r=ROWS-1;r>=0;r--) if(!grid[r][col]) return r; return -1; }
+
+function dropBlob(col){
+  if(animating) return;
+  const blob=nextBlobs[0];
+  const row=getDropRow(col);
+  if(row<0) return;
+
+  const cfg=getLevelCfg(currentLevel);
+  undoStack.push({grid:deepClone(grid),score,nextBlobs:nextBlobs.map(b=>({...b})),
+    comboCount,bonusMeter,bonusActive,bonusMovesLeft,currentLevel,COLS});
+  if(undoStack.length>3) undoStack.shift();
+
+  grid[row][col]={...blob,scale:0.1,wobble:0.9,opacity:1};
+  animating=true;
+  chainScoreAccum=0;
+
+  if(blob.isRainbow){
+    grid[row][col].color=pickBestRainbowColor(row,col);
+    grid[row][col].isRainbow=false;
+  }
+
+  // Bonus move tick
+  if(bonusActive) tickBonusMove();
+
+  animateDrop(row,col,()=>{
+    const mergeHappened={value:false};
+    checkMerges(row,col,mergeHappened,()=>{
+      if(!mergeHappened.value) resetCombo();
+      if(chainScoreAccum>=50) showChainTotal(chainScoreAccum);
+      animating=false;
+
+      // Advance queue
+      nextBlobs.shift();
+      rainbowDropsLeft--;
+      let newBlob;
+      if(rainbowDropsLeft<=0){
+        newBlob=makeRainbow();
+        rainbowDropsLeft=9+Math.floor(Math.random()*5);
+      } else {
+        newBlob=bonusActive
+          ?{...rndBlob(2)} // during bonus: only 2 colors
+          :rndBlob(cfg.colors);
+      }
+      if(nextBlobs.length<cfg.queueSize) nextBlobs.push(newBlob);
+
+      checkLevelUp();
+      updateTrayUI();
+      checkGameOver();
+      renderAll();
+    });
+  });
+}
+
+function pickBestRainbowColor(row,col){
+  const counts={};
+  [[row-1,col],[row+1,col],[row,col-1],[row,col+1]].forEach(([r,c])=>{
+    if(r>=0&&r<ROWS&&c>=0&&c<COLS&&grid[r][c]&&!grid[r][c].isRainbow){
+      const k=grid[r][c].color;counts[k]=(counts[k]||0)+1;
+    }
+  });
+  for(let r=row+1;r<ROWS;r++){
+    const b=grid[r][col];if(b&&!b.isRainbow){counts[b.color]=(counts[b.color]||0)+0.5;break;}
+  }
+  let best=-1,bc=0;
+  Object.entries(counts).forEach(([k,v])=>{if(v>bc){bc=v;best=parseInt(k);}});
+  return best>=0?best:Math.floor(Math.random()*getLevelCfg(currentLevel).colors);
+}
+
+function animateDrop(row,col,cb){
+  const b=grid[row][col];let t=0;
+  const tick=()=>{
+    t++;b.scale=Math.min(1,0.1+t*0.075);
+    b.wobble=Math.sin(t*0.38)*Math.exp(-t*0.07);
+    renderAll();
+    if(t<28) requestAnimationFrame(tick);
+    else{b.scale=1;b.wobble=0;cb();}
+  };
+  requestAnimationFrame(tick);
+}
+
+function checkMerges(row,col,mergeFlag,cb){
+  const blob=grid[row][col];
+  if(!blob){cb();return;}
+  const connected=floodFind(row,col,blob.color,blob.level);
+  if(connected.length<3){cb();return;}
+
+  mergeFlag.value=true;
+  incrementCombo();
+  fillBonusMeter(connected.length);
+
+  const sizeMult=mergeMult(connected.length);
+  const comboMult=getComboMult();
+  const bonusMult=getBonusMult();
+  const basePts=connected.length*blob.level*10;
+  const pts=Math.round(basePts*sizeMult*comboMult*bonusMult);
+  addScore(pts);
+  chainScoreAccum+=pts;
+
+  const avgR=Math.round(connected.reduce((s,c)=>s+c[0],0)/connected.length);
+  const avgC=Math.round(connected.reduce((s,c)=>s+c[1],0)/connected.length);
+
+  connected.forEach(([r,c])=>{
+    spawnPop(c*CELL+CELL/2,r*CELL+CELL/2,blob.color,14,blob.isRainbow);
+    grid[r][c]=null;
+  });
+
+  showMergePopup(pts,avgC*CELL+CELL/2,avgR*CELL+CELL/2,sizeMult,comboMult,bonusMult,connected.length);
+
+  const newLevel=blob.level+1;
+  const dr=getDropRow(avgC);
+  const targetRow=dr>=0?dr:0;
+  if(newLevel<=6){
+    const newColor=bonusActive?(blob.color%2):blob.color;
+    grid[targetRow][avgC]={color:newColor,level:newLevel,scale:0.05,wobble:1,opacity:1,isRainbow:false};
+  }
+  applyGravity();
+
+  let t=0;
+  const tick=()=>{
+    t++;
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const b=grid[r][c];if(!b) continue;
+      if(b.scale<1) b.scale=Math.min(1,b.scale+0.09);
+      if(Math.abs(b.wobble)>0.01) b.wobble*=0.9;
+    }
+    renderAll();
+    if(t<32) requestAnimationFrame(tick);
+    else{ if(newLevel<=6) checkMerges(targetRow,avgC,mergeFlag,cb); else cb(); }
+  };
+  requestAnimationFrame(tick);
+}
+
+function floodFind(sr,sc,color,level){
+  const found=[],visited=new Set(),q=[[sr,sc]];
+  while(q.length){
+    const[r,c]=q.shift(),k=`${r},${c}`;
+    if(visited.has(k)) continue;visited.add(k);
+    const b=grid[r]?.[c];
+    if(!b||b.color!==color||b.level!==level) continue;
+    found.push([r,c]);
+    [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].forEach(([nr,nc])=>{
+      if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS) q.push([nr,nc]);
+    });
+  }
+  return found;
+}
+
+function applyGravity(){
+  for(let c=0;c<COLS;c++){
+    let w=ROWS-1;
+    for(let r=ROWS-1;r>=0;r--){if(grid[r][c]){grid[w][c]=grid[r][c];if(w!==r)grid[r][c]=null;w--;}}
+    for(let r=w;r>=0;r--) grid[r][c]=null;
+  }
+}
+
+function checkGameOver(){
+  for(let c=0;c<COLS;c++) if(countColFilled(c)>=ROWS){setTimeout(showGameOver,500);return;}
+}
+function showGameOver(){
+  document.getElementById('goScore').textContent=score;
+  document.getElementById('goBest').textContent=score>=best?'🏆 New Best!':`Best: ${best}`;
+  document.getElementById('goLevel').textContent=`Reached Level ${currentLevel}`;
+  document.getElementById('goCombo').textContent=maxCombo>2?`🔥 Best combo ×${getMultForCombo(maxCombo)}`:'';
+  document.getElementById('gameOver').classList.add('show');
+}
+function getMultForCombo(n){const cfg=[...COMBO_CFG].reverse().find(c=>n>=c.min);return cfg?cfg.mult:1;}
+
+function undoMove(){
+  if(!undoStack.length||animating) return;
+  const p=undoStack.pop();
+  grid=p.grid;score=p.score;nextBlobs=p.nextBlobs;comboCount=p.comboCount;
+  bonusMeter=p.bonusMeter;bonusActive=p.bonusActive;bonusMovesLeft=p.bonusMovesLeft;
+  currentLevel=p.currentLevel;
+  if(p.COLS!==COLS){ COLS=p.COLS; resize(); }
+  updateScoreUI();updateLevelUI();updateBonusMeterUI();
+  updateTrayUI();hideComboBar();renderAll();
+  document.getElementById('undoBtn').classList.toggle('btn-hidden',!getLevelCfg(currentLevel).undo);
+}
+
+function showMergePopup(pts,x,y,sizeMult,comboMult,bonusMult,count){
+  const el=document.createElement('div');
+  el.className='score-popup';
+  const parts=[];
+  if(sizeMult>1) parts.push(`${count}blobs ×${sizeMult}`);
+  if(comboMult>1) parts.push(`combo ×${comboMult}`);
+  if(bonusMult>1) parts.push(`🔥×${bonusMult}`);
+  el.textContent='+'+pts+(parts.length?' ('+parts.join(' ')+')'  :'');
+  el.style.color=bonusMult>1?'#ffe01a':sizeMult>=8?'#ff3d3d':sizeMult>=4?'#a64dff':comboMult>1?'#ff8c00':'#ffe680';
+  el.style.fontSize=(sizeMult>=4||comboMult>=2||bonusMult>1?25:21)+'px';
+  const rect=canvas.getBoundingClientRect();
+  el.style.left=(rect.left+x-60)+'px';
+  el.style.top=(rect.top+y-20)+'px';
+  document.body.appendChild(el);setTimeout(()=>el.remove(),1100);
+}
+
+function showChainTotal(total){
+  const el=document.createElement('div');
+  el.className='chain-total';
+  el.style.color=total>=500?'#ff3d3d':total>=200?'#a64dff':total>=100?'#ff8c00':'#ffe01a';
+  el.textContent='+'+total+' pts!';
+  el.style.top=(window.innerHeight*0.28)+'px';
+  document.body.appendChild(el);setTimeout(()=>el.remove(),1500);
+}
+
+function deepClone(g){return g.map(row=>row.map(cell=>cell?{...cell}:null));}
+function lighten(hex,amt){
+  const n=parseInt(hex.slice(1),16);
+  return `rgb(${Math.min(255,(n>>16)+amt)},${Math.min(255,((n>>8)&0xff)+amt)},${Math.min(255,(n&0xff)+amt)})`;
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+// ---- Input ----
+let pDown=false;
+function getCol(clientX){const rect=canvas.getBoundingClientRect();return Math.floor((clientX-rect.left)/CELL);}
+function getPos(cx,cy){const rect=canvas.getBoundingClientRect();return{x:cx-rect.left,y:cy-rect.top};}
+
+canvas.addEventListener('pointerdown',e=>{
+  if(animating) return;pDown=true;
+  const p=getPos(e.clientX,e.clientY);
+  dragBlob={...nextBlobs[0],x:p.x,y:p.y,col:getCol(e.clientX)};
+  renderAll();
+});
+canvas.addEventListener('pointermove',e=>{
+  if(!pDown||!dragBlob) return;
+  const p=getPos(e.clientX,e.clientY);
+  dragBlob.x=p.x;dragBlob.y=p.y;dragBlob.col=getCol(e.clientX);renderAll();
+});
+canvas.addEventListener('pointerup',e=>{
+  if(!pDown||!dragBlob) return;pDown=false;
+  const col=getCol(e.clientX);dragBlob=null;
+  if(col>=0&&col<COLS) dropBlob(col);else renderAll();
+});
+canvas.addEventListener('pointerleave',e=>{
+  if(pDown&&dragBlob){pDown=false;const col=dragBlob.col;dragBlob=null;
+    if(col>=0&&col<COLS) dropBlob(col);else renderAll();}
+});
+
+// ---- Idle loop ----
+let lt=0;
+function idle(ts){
+  requestAnimationFrame(idle);
+  const hasRainbow=nextBlobs[0]?.isRainbow||grid.some(row=>row.some(b=>b&&b.isRainbow));
+  if(!animating&&!dragBlob&&ts-lt>32){
+    lt=ts;
+    let dirty=particles.length>0||hasRainbow||bonusActive;
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const b=grid[r][c];
+      if(b&&Math.abs(b.wobble)>0.005){b.wobble*=0.9;dirty=true;}
+    }
+    if(dirty) renderAll();
+  }
+}
+requestAnimationFrame(idle);
+
+window.addEventListener('resize',()=>{resize();updateTrayUI();renderAll();});
+newGame();
+</script>
+</body>
+</html>
