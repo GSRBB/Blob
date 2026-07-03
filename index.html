@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Plink · Play Games</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800;900&display=swap');
+:root{--bg:#07060f;--card:#0e0d1c;--text:#fffffe;--sub:#8b8da8;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;}
+body{background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);
+  min-height:100vh;overflow-x:hidden;padding-bottom:40px;}
+
+/* Ambient background */
+.bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 50% 40% at 12% 5%, #ff6b6b18 0%,transparent 65%),
+    radial-gradient(ellipse 45% 45% at 88% 20%, #4d96ff18 0%,transparent 65%),
+    radial-gradient(ellipse 50% 40% at 50% 100%, #c77dff14 0%,transparent 65%);}
+
+.wrap{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:0 20px;}
+
+/* Header */
+header{text-align:center;padding:48px 0 12px;}
+.logo{font-family:'Fredoka One',cursive;font-size:56px;letter-spacing:1px;
+  background:linear-gradient(120deg,#ff6b6b,#ffd93d,#6bcb77,#4d96ff,#c77dff);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 4px 20px #4d96ff33);
+  animation:shine 6s linear infinite;}
+@keyframes shine{to{background-position:200% center;}}
+.tagline{color:var(--sub);font-size:16px;font-weight:700;margin-top:4px;letter-spacing:0.5px;}
+
+/* Grid */
+.games{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:22px;margin-top:40px;}
+
+/* Card */
+.card{background:var(--card);border-radius:24px;overflow:hidden;
+  border:1px solid #ffffff0c;box-shadow:0 12px 40px #00000066;
+  cursor:pointer;text-decoration:none;color:inherit;display:block;
+  transition:transform 0.25s cubic-bezier(.2,.8,.3,1),box-shadow 0.25s;}
+.card:hover{transform:translateY(-8px) scale(1.02);
+  box-shadow:0 24px 60px #00000088,0 0 0 1px #ffffff18;}
+.card:active{transform:translateY(-2px) scale(0.99);}
+
+/* Preview area (canvas-rendered) */
+.preview{position:relative;aspect-ratio:4/3;overflow:hidden;
+  background:#07060f;display:flex;align-items:center;justify-content:center;}
+.preview canvas{width:100%;height:100%;display:block;}
+.play-badge{position:absolute;bottom:12px;right:12px;
+  background:#000000aa;backdrop-filter:blur(8px);
+  border-radius:20px;padding:6px 14px;font-family:'Fredoka One',cursive;
+  font-size:13px;display:flex;align-items:center;gap:6px;
+  border:1px solid #ffffff22;}
+
+/* Card body */
+.body{padding:16px 18px 20px;}
+.title{font-family:'Fredoka One',cursive;font-size:21px;margin-bottom:4px;}
+.desc{color:var(--sub);font-size:13px;line-height:1.5;font-weight:600;}
+.tags{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;}
+.tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;
+  padding:4px 10px;border-radius:20px;background:#ffffff0e;color:var(--sub);}
+
+footer{text-align:center;color:#ffffff22;font-size:12px;font-weight:700;
+  margin-top:48px;letter-spacing:0.5px;}
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+<div class="wrap">
+  <header>
+    <div class="logo">Plink</div>
+    <div class="tagline">Little games. Big fun. 🎮</div>
+  </header>
+
+  <div class="games">
+
+    <a class="card" href="ti-venner.html">
+      <div class="preview"><canvas data-game="ti" width="320" height="240"></canvas>
+        <div class="play-badge">▶ Play</div></div>
+      <div class="body">
+        <div class="title">Ti-Venner</div>
+        <div class="desc">Make 10! Drop numbered blobs and clear pairs that add up to ten. Sneakily educational.</div>
+        <div class="tags"><span class="tag">Puzzle</span><span class="tag">Maths</span><span class="tag">All ages</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="blobb.html">
+      <div class="preview"><canvas data-game="blob" width="320" height="240"></canvas>
+        <div class="play-badge">▶ Play</div></div>
+      <div class="body">
+        <div class="title">Blob Merge</div>
+        <div class="desc">Drop, merge, and chain colourful blobs. Trigger combos and bonus rounds for huge scores.</div>
+        <div class="tags"><span class="tag">Puzzle</span><span class="tag">Arcade</span><span class="tag">Combos</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="calico-cat-runner.html">
+      <div class="preview"><canvas data-game="cat" width="320" height="240"></canvas>
+        <div class="play-badge">▶ Play</div></div>
+      <div class="body">
+        <div class="title">Calico Runner</div>
+        <div class="desc">Jump and double-jump your calico cat over neon obstacles in an endless night run.</div>
+        <div class="tags"><span class="tag">Arcade</span><span class="tag">Runner</span><span class="tag">Reflex</span></div>
+      </div>
+    </a>
+
+  </div>
+
+  <footer>Made with ♥ · More games coming soon</footer>
+</div>
+
+<script>
+// Render a stylised preview for each game onto its card canvas
+function lighten(hex,amt){const n=parseInt(hex.slice(1),16);
+  return `rgb(${Math.min(255,(n>>16)+amt)},${Math.min(255,((n>>8)&0xff)+amt)},${Math.min(255,(n&0xff)+amt)})`;}
+
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+
+function drawBall(ctx,cx,cy,r,fill,dark,glow,label){
+  ctx.save();
+  ctx.shadowColor=glow;ctx.shadowBlur=14;
+  const g=ctx.createRadialGradient(cx-r*0.3,cy-r*0.32,r*0.05,cx,cy,r);
+  g.addColorStop(0,lighten(fill,65));g.addColorStop(0.5,fill);g.addColorStop(1,dark);
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+  ctx.shadowBlur=0;
+  const sh=ctx.createRadialGradient(cx-r*0.28,cy-r*0.38,0,cx-r*0.15,cy-r*0.25,r*0.6);
+  sh.addColorStop(0,'rgba(255,255,255,0.5)');sh.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=sh;ctx.fill();
+  if(label!==undefined){
+    ctx.fillStyle='rgba(255,255,255,0.97)';
+    ctx.font=`900 ${Math.round(r*0.8)}px "Fredoka One",cursive`;
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,cx,cy+1);
+  }
+  ctx.restore();
+}
+
+const NUMC={
+  1:['#ff6b6b','#6e0000','#ff6b6b'],2:['#ff9f43','#6e3000','#ff9f43'],
+  3:['#ffd93d','#665000','#ffd93d'],4:['#6bcb77','#0a4a18','#6bcb77'],
+  5:['#4d96ff','#002a80','#4d96ff'],6:['#c77dff','#380066','#c77dff'],
+  7:['#ff6eb4','#6e0038','#ff6eb4']
+};
+const BLOBC=[
+  ['#ff3d3d','#6e0000','#ff3d3d'],['#1ad4ff','#004466','#1ad4ff'],
+  ['#2eeb6a','#005a1e','#2eeb6a'],['#ffe01a','#665200','#ffe01a'],
+  ['#a64dff','#350066','#a64dff'],['#ff8c00','#6e2800','#ff8c00']
+];
+
+function grid(ctx,w,h,cols,rows){
+  ctx.fillStyle='#07060f';ctx.fillRect(0,0,w,h);
+  const cw=w/cols,ch=h/rows;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    ctx.fillStyle=(r+c)%2===0?'#100f1e':'#0d0c1a';
+    roundRect(ctx,c*cw+2,r*ch+2,cw-4,ch-4,7);ctx.fill();
+  }
+  return {cw,ch};
+}
+
+function renderTi(ctx,w,h){
+  const {cw,ch}=grid(ctx,w,h,6,6);
+  // bottom-stacked numbered balls
+  const layout=[
+    [5,2,7],[5,3,3],[4,3,6],[4,4,4],[5,4,5],[3,4,7],
+    [4,2,1],[5,1,5],[3,3,2]
+  ];
+  layout.forEach(([r,c,n])=>{
+    const col=NUMC[n]||NUMC[1];
+    drawBall(ctx,c*cw+cw/2,r*ch+ch/2,Math.min(cw,ch)/2-4,col[0],col[1],col[2],n);
+  });
+}
+
+function renderBlob(ctx,w,h){
+  const {cw,ch}=grid(ctx,w,h,6,6);
+  const layout=[
+    [5,2,0],[5,3,0],[4,3,1],[5,4,2],[4,4,2],[3,4,4],
+    [5,1,3],[4,2,5],[5,5,4],[3,3,1]
+  ];
+  layout.forEach(([r,c,ci])=>{
+    const col=BLOBC[ci];
+    drawBall(ctx,c*cw+cw/2,r*ch+ch/2,Math.min(cw,ch)/2-4,col[0],col[1],col[2]);
+  });
+}
+
+function renderCat(ctx,w,h){
+  // night sky
+  const g=ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'#0d0520');g.addColorStop(1,'#1a0a40');
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  // moon
+  ctx.save();ctx.shadowColor='#fff8cc';ctx.shadowBlur=16;
+  ctx.fillStyle='#fff8cc';ctx.beginPath();ctx.arc(w*0.8,h*0.24,15,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+  // stars
+  ctx.fillStyle='#ffffffcc';
+  [[40,40],[90,25],[130,60],[200,35],[260,70],[70,90],[240,30]].forEach(([x,y])=>{
+    ctx.beginPath();ctx.arc(x,y,1.3,0,Math.PI*2);ctx.fill();});
+  // ground
+  ctx.fillStyle='#2a1550';ctx.fillRect(0,h*0.78,w,h*0.22);
+  ctx.strokeStyle='#ff9ed2';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(0,h*0.78);ctx.lineTo(w,h*0.78);ctx.stroke();
+  // cactus obstacle
+  ctx.fillStyle='#3d1060';roundRect(ctx,w*0.62,h*0.6,10,h*0.18,3);ctx.fill();
+  ctx.fillStyle='#aa66ff';
+  [w*0.62,w*0.645,w*0.665].forEach(sx=>{ctx.beginPath();
+    ctx.moveTo(sx,h*0.63);ctx.lineTo(sx+2,h*0.58);ctx.lineTo(sx+4,h*0.63);ctx.fill();});
+  // calico cat (simple)
+  const cx=w*0.26,cy=h*0.66,s=30;
+  ctx.save();ctx.translate(cx,cy);
+  // tail
+  ctx.strokeStyle='#e8a87c';ctx.lineWidth=4;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-s/2,4);ctx.quadraticCurveTo(-s/2-9,-6,-s/2-5,-16);ctx.stroke();
+  // legs
+  ctx.fillStyle='#d4a0d4';ctx.fillRect(-10,8,4,10);ctx.fillRect(2,8,4,10);
+  // body white
+  ctx.fillStyle='#f5f0f5';roundRect(ctx,-s/2+2,-6,s-4,18,8);ctx.fill();
+  // patches
+  ctx.fillStyle='#e08040';ctx.beginPath();ctx.ellipse(-3,0,7,5,0.3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#2a1020';ctx.beginPath();ctx.ellipse(6,3,5,4,-0.2,0,Math.PI*2);ctx.fill();
+  // head
+  ctx.fillStyle='#f5f0f5';ctx.beginPath();ctx.ellipse(6,-12,11,10,0,0,Math.PI*2);ctx.fill();
+  // ears
+  ctx.beginPath();ctx.moveTo(-2,-18);ctx.lineTo(-5,-27);ctx.lineTo(3,-20);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(12,-18);ctx.lineTo(16,-27);ctx.lineTo(9,-20);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#ff9ed2';
+  ctx.beginPath();ctx.moveTo(-1,-19);ctx.lineTo(-3,-25);ctx.lineTo(2,-20);ctx.closePath();ctx.fill();
+  // eyes
+  ctx.fillStyle='#1a0a2e';
+  ctx.beginPath();ctx.arc(2,-13,2,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(11,-13,2,0,Math.PI*2);ctx.fill();
+  // nose
+  ctx.fillStyle='#ff9ed2';ctx.beginPath();ctx.moveTo(5,-9);ctx.lineTo(8,-9);ctx.lineTo(6.5,-7);ctx.closePath();ctx.fill();
+  ctx.restore();
+}
+
+document.querySelectorAll('canvas[data-game]').forEach(cv=>{
+  const ctx=cv.getContext('2d');
+  const g=cv.dataset.game;
+  if(g==='ti') renderTi(ctx,cv.width,cv.height);
+  else if(g==='blob') renderBlob(ctx,cv.width,cv.height);
+  else if(g==='cat') renderCat(ctx,cv.width,cv.height);
+});
+</script>
+</body>
+</html>
